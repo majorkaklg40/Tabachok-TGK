@@ -4,11 +4,11 @@ const P=[
   body:'- яркий экран: заряд и жидкость\n- режимы SOFT и BOOST\n- 22 мл жидкости\n- батарея 650 мАч',
   desc:'Одноразовая система IZI M: до 22 000 затяжек, большой цветной экран с уровнем заряда и жидкости, режимы SOFT и BOOST.',
   flavors:'Мята с двойным льдом',tags:'#izi #одноразка'},
- {id:'voopoo-vmate-pro-2',img:'pro2.png',scale:116,cx:950,cy:362,title:'VOOPOO\nVMATE PRO 2',
+ {id:'voopoo-vmate-pro-2',img:'pro2.png',scale:112,cx:930,cy:370,rot:-12,title:'VOOPOO\nVMATE PRO 2',
   body:'- батарея 1500 мАч\n- два картриджа 0.4 Ω и 0.7 Ω\n- верхняя заправка, 3 мл\n- зарядка Type-C',
   desc:'Многоразовая под-система VOOPOO VMATE PRO 2. В комплекте сразу два картриджа с верхней заправкой: 0.4 Ω и 0.7 Ω по 3 мл. Улучшены вкус, герметичность и ресурс (3X Upgrade).',
   flavors:'',tags:'#voopoo #vmate #подсистема'},
- {id:'voopoo-vmate-i3',img:'i3.png',scale:112,cx:950,cy:355,title:'VOOPOO\nVMATE i3',
+ {id:'voopoo-vmate-i3',img:'i3.png',scale:112,cx:930,cy:370,rot:-12,title:'VOOPOO\nVMATE i3',
   body:'- батарея 1500 мАч\n- картридж 0.7 Ω, 3 мл\n- верхняя заправка\n- подходят картриджи VMATE',
   desc:'Компактная под-система VOOPOO VMATE i3 в карбоновом корпусе. Картридж 0.7 Ω на 3 мл с верхней заправкой, подходят все картриджи семейства VMATE.',
   flavors:'',tags:'#voopoo #vmate #подсистема'}];
@@ -20,6 +20,7 @@ for(const it of P){
  await p.fill('#pDesc',it.desc);await p.fill('#pFlavors',it.flavors);await p.fill('#pTags',it.tags);await p.fill('#pPrice','');await p.fill('#pWhere','');
  await p.setInputFiles('#fFile',it.img);await p.waitForTimeout(800);
  await p.evaluate(s=>{const e=document.getElementById('sScale');e.value=s;e.dispatchEvent(new Event('input'));},it.scale);
+ if(it.rot)await p.evaluate(r=>{const e=document.getElementById('sRot');e.value=r;e.dispatchEvent(new Event('input'));},it.rot);
  // move product: drag from center
  const box=await p.locator('#card').boundingBox();const k=box.width/1280;
  await p.mouse.move(box.x+900*k,box.y+400*k);await p.mouse.down();await p.mouse.move(box.x+it.cx*k,box.y+it.cy*k,{steps:5});await p.mouse.up();

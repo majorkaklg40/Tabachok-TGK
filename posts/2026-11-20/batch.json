@@ -1,0 +1,11 @@
+{"id": "2026-11-20", "title": "Посты Табачка 20.11", "items": [
+ {"name": "IZI M", "image": "photos/izi-m.png", "scale": 128, "cx": 930, "cy": 385, "rot": 0,
+  "fTitle": "IZI M\n22.000 puffs", "fBody": "- яркий экран: заряд и жидкость\n- режимы SOFT и BOOST\n- 22 мл жидкости\n- батарея 650 мАч", "fLabel": "Поступление",
+  "pDesc": "Одноразовая система IZI M: до 22 000 затяжек, большой цветной экран с уровнем заряда и жидкости, режимы SOFT и BOOST.", "pFlavors": "Мята с двойным льдом", "pPrice": "", "pWhere": "", "pTags": "#izi #одноразка", "post": "izi-m.txt"},
+ {"name": "VMATE PRO 2", "image": "photos/voopoo-vmate-pro-2.png", "scale": 112, "cx": 930, "cy": 370, "rot": -12,
+  "fTitle": "VOOPOO\nVMATE PRO 2", "fBody": "- батарея 1500 мАч\n- два картриджа 0.4 Ω и 0.7 Ω\n- верхняя заправка, 3 мл\n- зарядка Type-C", "fLabel": "Поступление",
+  "pDesc": "Многоразовая под-система VOOPOO VMATE PRO 2. В комплекте сразу два картриджа с верхней заправкой: 0.4 Ω и 0.7 Ω по 3 мл. Улучшены вкус, герметичность и ресурс (3X Upgrade).", "pFlavors": "", "pPrice": "", "pWhere": "", "pTags": "#voopoo #vmate #подсистема", "post": "voopoo-vmate-pro-2.txt"},
+ {"name": "VMATE i3", "image": "photos/voopoo-vmate-i3.png", "scale": 112, "cx": 930, "cy": 370, "rot": -12,
+  "fTitle": "VOOPOO\nVMATE i3", "fBody": "- батарея 1500 мАч\n- картридж 0.7 Ω, 3 мл\n- верхняя заправка\n- подходят картриджи VMATE", "fLabel": "Поступление",
+  "pDesc": "Компактная под-система VOOPOO VMATE i3. Картридж 0.7 Ω на 3 мл с верхней заправкой, подходят все картриджи семейства VMATE.", "pFlavors": "", "pPrice": "", "pWhere": "", "pTags": "#voopoo #vmate #подсистема", "post": "voopoo-vmate-i3.txt"}
+]}

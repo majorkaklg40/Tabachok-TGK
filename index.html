@@ -60,6 +60,9 @@ button.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);
 .upload input{position:absolute;opacity:0;width:1px;height:1px}
 .result{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:14px}
 .result img{width:100%;border-radius:6px;display:block}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tabs button{border-radius:999px}
+.tabs button[aria-current=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .post{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:20px;align-items:start}
 @media (max-width:900px){.post{grid-template-columns:minmax(0,1fr)}}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -84,6 +87,7 @@ button.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);
     <p class="sub">Заполните поля, добавьте фото товара и получите карточку 1280×720 в фирменном стиле канала и готовый текст поста.</p>
   </header>
 
+  <nav class="tabs" id="tabs" aria-label="Посты" hidden></nav>
   <section class="grid" aria-label="Карточка">
     <div class="stage">
       <div class="canvas-box" id="canvasBox">
@@ -119,6 +123,11 @@ button.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);
         <textarea id="fBody" rows="4"></textarea>
         <span class="hint">Строка с «-» в начале станет пунктом списка.</span>
       </div>
+      <div class="sliders">
+        <label for="sTsize">Заголовок</label><input type="range" id="sTsize" min="36" max="96" value="64"><output id="oTsize">64</output>
+        <label for="sBsize">Текст</label><input type="range" id="sBsize" min="18" max="42" value="29"><output id="oBsize">29</output>
+      </div>
+      <label class="check"><input type="checkbox" id="fLogo" checked> Показывать логотип</label>
       <div class="field">
         <label for="fLabel">Подпись внизу</label>
         <div class="row" id="labelChips"></div>
@@ -177,6 +186,7 @@ button.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);
         <div class="row" style="justify-content:space-between">
           <button class="primary" id="copyText" type="button">Копировать текст</button>
           <button class="chip" id="regen" type="button">Собрать заново</button>
+          <button class="chip" id="resetItem" type="button" hidden>Вернуть исходный пост</button>
         </div>
         <span class="hint">Звёздочки **так** Telegram при отправке делает жирным шрифтом.</span>
       </div>
@@ -214,7 +224,7 @@ const BGS={
   mint:{name:'Мята',base:'#06201b',glow:[[1010,230,780,'rgba(40,140,118,.8)'],[640,760,560,'rgba(24,100,84,.7)'],[1300,700,520,'rgba(20,84,70,.6)']],streak:'rgba(120,220,190,.22)',corner:'rgba(0,8,6,.92)'}
 };
 
-const st={title:'',body:'',label:'',bg:'classic',img:null,raw:null,cx:900,cy:400,scale:100,rot:0,shadow:true,cut:false,tol:40};
+const st={title:'',body:'',label:'',bg:'classic',img:null,raw:null,cx:900,cy:400,scale:100,rot:0,shadow:true,cut:false,tol:40,tsize:64,bsize:29,logo:true,src:null};
 const fields=['fTitle','fBody','fLabel','pDesc','pFlavors','pPrice','pWhere','pTags'];
 
 // ---------- drawing ----------
@@ -240,19 +250,19 @@ function wrap(c,text,maxW){
 }
 function drawText(c){
   c.textBaseline='alphabetic';c.fillStyle='#fff';
-  if(logo.complete&&logo.naturalWidth) c.drawImage(logo,26,22,338*.96,104*.96);
+  if(st.logo&&logo.complete&&logo.naturalWidth) c.drawImage(logo,26,22,338*.96,104*.96);
   // title
   const tl=st.title.split('\n').filter((l,i,a)=>l.trim()||i<a.length-1);
-  let fs=64;const maxT=590;
+  let fs=st.tsize;const maxT=590;
   c.font=`800 ${fs}px Inter, sans-serif`;
-  while(fs>38&&tl.some(l=>c.measureText(l).width>maxT)){fs-=2;c.font=`800 ${fs}px Inter, sans-serif`;}
+  while(fs>30&&tl.some(l=>c.measureText(l).width>maxT)){fs-=2;c.font=`800 ${fs}px Inter, sans-serif`;}
   const tlines=wrap(c,tl.join('\n'),maxT);
   let y=242;const lh=Math.round(fs*1.27);
   tlines.forEach(l=>{c.fillText(l,32,y);y+=lh;});
   // body
-  c.font='400 29px Inter, sans-serif';c.fillStyle='rgba(255,255,255,.96)';
+  const bs=st.bsize;c.font=`400 ${bs}px Inter, sans-serif`;c.fillStyle='rgba(255,255,255,.96)';
   y+=Math.round(fs*.55)-lh+56;
-  wrap(c,st.body,520).forEach(l=>{c.fillText(l,32,y);y+=41;});
+  wrap(c,st.body,Math.max(520,bs*18)).forEach(l=>{c.fillText(l,32,y);y+=Math.round(bs*1.41);});
   // label
   c.font='400 31px Inter, sans-serif';c.fillStyle='rgba(255,255,255,.92)';
   c.fillText(st.label,18,694);
@@ -304,14 +314,21 @@ function prepare(){
 }
 function loadFile(file){
   if(!file||!file.type.startsWith('image/'))return toast('Это не картинка. Нужен файл PNG, JPG или WEBP.');
-  const url=URL.createObjectURL(file);const im=new Image();
-  im.onload=()=>{st.raw=im;st.cx=900;st.cy=400;st.scale=100;st.rot=0;syncSliders();
-    st.cut=/jpe?g/i.test(file.type);$('fCut').checked=st.cut;prepare();};
+  const r=new FileReader();
+  r.onload=()=>{st.cx=900;st.cy=400;st.scale=100;st.rot=0;st.cut=/jpe?g/i.test(file.type);syncControls();loadSrc(r.result);};
+  r.onerror=()=>toast('Не удалось открыть картинку.');r.readAsDataURL(file);
+}
+function loadSrc(url){
+  st.src=url;if(!url){st.raw=null;prepare();save();return;}
+  const im=new Image();im.onload=()=>{if(st.src!==url)return;st.raw=im;prepare();save();};
   im.onerror=()=>toast('Не удалось открыть картинку.');im.src=url;
 }
 
 // ---------- UI ----------
 function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,2400);}
+function syncControls(){syncSliders();$('fCut').checked=st.cut;$('sTol').value=st.tol;$('oTol').textContent=st.tol;$('fShadow').checked=st.shadow;
+  $('sTsize').value=st.tsize;$('oTsize').textContent=st.tsize;$('sBsize').value=st.bsize;$('oBsize').textContent=st.bsize;$('fLogo').checked=st.logo;
+  [...$('bgSw').children].forEach((x,i)=>x.setAttribute('aria-pressed',Object.keys(BGS)[i]===st.bg));}
 function syncSliders(){$('sScale').value=st.scale;$('oScale').textContent=st.scale+'%';$('sRot').value=st.rot;$('oRot').textContent=st.rot+'°';}
 function readCard(){st.title=$('fTitle').value;st.body=$('fBody').value;st.label=$('fLabel').value;
   [...$('labelChips').children].forEach(b=>b.setAttribute('aria-pressed',b.textContent===st.label));}
@@ -343,7 +360,24 @@ function showCap(){
   const n=t.replace(/\*\*(.+?)\*\*/g,'$1').length;const el=$('count');
   el.textContent=n>1024?`${n} / 1024 — длинно для подписи к фото`:`${n} / 1024 символов`;el.classList.toggle('over',n>1024);
 }
-function save(){try{const o={bg:st.bg};fields.forEach(f=>o[f]=$(f).value);localStorage.setItem('tabachok-card-v1',JSON.stringify(o));}catch(e){}}
+const BATCH=window.TABACHOK_BATCH||null;let cur=0;const ORIG=BATCH?JSON.parse(JSON.stringify(BATCH.items)):null;
+const KEYS=['bg','cx','cy','scale','rot','shadow','cut','tol','tsize','bsize','logo'];
+function snap(){const o={};KEYS.forEach(k=>o[k]=st[k]);fields.forEach(f=>o[f]=$(f).value);o.post=$('postOut').value;o.src=st.src;return o;}
+function save(){
+  if(BATCH){BATCH.items[cur]=Object.assign(BATCH.items[cur],snap());clearTimeout(save.t);save.t=setTimeout(()=>{
+    const light=BATCH.items.map((it,i)=>{const o=Object.assign({},it);if(o.src===ORIG[i].src)delete o.src;return o;});
+    try{localStorage.setItem('tabachok-batch-'+BATCH.id,JSON.stringify(light));}catch(e){try{localStorage.setItem('tabachok-batch-'+BATCH.id,JSON.stringify(light.map(o=>{const c=Object.assign({},o);delete c.src;return c;})));}catch(e2){}}},300);return;}
+  try{const o={bg:st.bg};fields.forEach(f=>o[f]=$(f).value);localStorage.setItem('tabachok-card-v1',JSON.stringify(o));}catch(e){}}
+function loadItem(o){
+  fields.forEach(f=>$(f).value=o[f]??'');
+  const d={bg:'classic',cx:900,cy:400,scale:100,rot:0,shadow:true,cut:false,tol:40,tsize:64,bsize:29,logo:true};
+  KEYS.forEach(k=>st[k]=o[k]??d[k]);syncControls();readCard();
+  if(o.post){$('postOut').value=o.post;showCap();}else buildPost();
+  st.raw=null;st.img=null;st.src=null;redraw();if(o.src)loadSrc(o.src);
+}
+function renderTabs(){const t=$('tabs');t.innerHTML='';t.hidden=false;
+  BATCH.items.forEach((it,i)=>{const b=document.createElement('button');b.type='button';b.textContent=it.name||('Пост '+(i+1));b.setAttribute('aria-current',i===cur);
+    b.onclick=()=>{if(i===cur)return;save();cur=i;renderTabs();loadItem(BATCH.items[i]);};t.appendChild(b);});}
 function applyPreset(p){$('fTitle').value=p.title;$('fBody').value=p.body;$('fLabel').value=p.label;$('pDesc').value=p.desc||'';$('pFlavors').value=p.flavors||'';$('pTags').value=p.tags||'';
   readCard();buildPost();redraw();save();}
 
@@ -357,14 +391,17 @@ Object.entries(BGS).forEach(([k,b])=>{const s=document.createElement('button');s
 ['fTitle','fBody','fLabel'].forEach(f=>$(f).addEventListener('input',()=>{readCard();redraw();buildPost();save();}));
 ['pDesc','pFlavors','pPrice','pWhere','pTags'].forEach(f=>$(f).addEventListener('input',()=>{buildPost();save();}));
 ['pBold','p18'].forEach(f=>$(f).addEventListener('change',buildPost));
-$('regen').onclick=buildPost;$('postOut').addEventListener('input',showCap);
+$('regen').onclick=buildPost;$('postOut').addEventListener('input',()=>{showCap();save();});
 $('fFile').onchange=e=>{loadFile(e.target.files[0]);e.target.value='';};
-$('clearImg').onclick=()=>{st.raw=null;prepare();};
+$('clearImg').onclick=()=>loadSrc(null);
 $('fCut').onchange=e=>{st.cut=e.target.checked;prepare();};
 $('sTol').oninput=e=>{st.tol=+e.target.value;$('oTol').textContent=st.tol;clearTimeout(prepare.t);prepare.t=setTimeout(()=>{if(st.cut)prepare();},120);};
-$('sScale').oninput=e=>{st.scale=+e.target.value;syncSliders();redraw();};
-$('sRot').oninput=e=>{st.rot=+e.target.value;syncSliders();redraw();};
-$('fShadow').onchange=e=>{st.shadow=e.target.checked;redraw();};
+$('sScale').oninput=e=>{st.scale=+e.target.value;syncSliders();redraw();save();};
+$('sRot').oninput=e=>{st.rot=+e.target.value;syncSliders();redraw();save();};
+$('fShadow').onchange=e=>{st.shadow=e.target.checked;redraw();save();};
+$('sTsize').oninput=e=>{st.tsize=+e.target.value;$('oTsize').textContent=st.tsize;redraw();save();};
+$('sBsize').oninput=e=>{st.bsize=+e.target.value;$('oBsize').textContent=st.bsize;redraw();save();};
+$('fLogo').onchange=e=>{st.logo=e.target.checked;redraw();save();};
 $('centerImg').onclick=()=>{st.cx=900;st.cy=400;st.scale=100;st.rot=0;syncSliders();redraw();};
 
 // drag & wheel on canvas
@@ -372,7 +409,7 @@ let drag=null;
 function pt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};}
 cv.addEventListener('pointerdown',e=>{if(!st.img){$('fFile').click();return;}const p=pt(e);drag={dx:p.x-st.cx,dy:p.y-st.cy};cv.setPointerCapture(e.pointerId);cv.classList.add('dragging');});
 cv.addEventListener('pointermove',e=>{if(!drag)return;const p=pt(e);st.cx=Math.round(p.x-drag.dx);st.cy=Math.round(p.y-drag.dy);redraw();});
-const end=()=>{drag=null;cv.classList.remove('dragging');};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+const end=()=>{if(drag)save();drag=null;cv.classList.remove('dragging');};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
 cv.addEventListener('wheel',e=>{if(!st.img)return;e.preventDefault();st.scale=Math.max(20,Math.min(220,Math.round(st.scale*(e.deltaY<0?1.05:0.95))));syncSliders();redraw();},{passive:false});
 const box=$('canvasBox');
 box.addEventListener('dragover',e=>{e.preventDefault();$('dropHint').hidden=false;});
@@ -388,8 +425,14 @@ $('copyImgBtn').onclick=()=>{try{navigator.clipboard.write([new ClipboardItem({'
 $('copyText').onclick=()=>{const t=$('postOut').value;navigator.clipboard.writeText(t).then(()=>toast('Текст скопирован'),()=>{$('postOut').select();toast('Выделил текст — скопируйте его вручную');});};
 
 // init
-let saved=null;try{saved=JSON.parse(localStorage.getItem('tabachok-card-v1')||'null');}catch(e){}
-if(saved){fields.forEach(f=>{if(saved[f]!=null)$(f).value=saved[f];});if(BGS[saved.bg]){st.bg=saved.bg;[...$('bgSw').children].forEach((x,i)=>x.setAttribute('aria-pressed',Object.keys(BGS)[i]===st.bg));}readCard();buildPost();}
+let saved=null;
+if(BATCH){
+  try{const s=JSON.parse(localStorage.getItem('tabachok-batch-'+BATCH.id)||'null');if(Array.isArray(s))s.forEach((o,i)=>{if(BATCH.items[i])Object.assign(BATCH.items[i],o);});}catch(e){}
+  $('presets').closest('.field').hidden=true;$('resetItem').hidden=false;
+  $('resetItem').onclick=()=>{BATCH.items[cur]=JSON.parse(JSON.stringify(ORIG[cur]));loadItem(BATCH.items[cur]);save();toast('Пост вернулся к исходному варианту');};
+  renderTabs();loadItem(BATCH.items[0]);
+}else{try{saved=JSON.parse(localStorage.getItem('tabachok-card-v1')||'null');}catch(e){}}
+if(BATCH){}else if(saved){fields.forEach(f=>{if(saved[f]!=null)$(f).value=saved[f];});if(BGS[saved.bg]){st.bg=saved.bg;[...$('bgSw').children].forEach((x,i)=>x.setAttribute('aria-pressed',Object.keys(BGS)[i]===st.bg));}readCard();buildPost();}
 else applyPreset(PRESETS['CODE 46']);
 redraw();
 logo.complete||logo.addEventListener('load',redraw);

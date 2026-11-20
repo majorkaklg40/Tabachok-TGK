@@ -14,3 +14,9 @@
 | Дата | Посты | Редактор |
 |---|---|---|
 | 2026-11-20 | IZI M, VOOPOO VMATE PRO 2, VOOPOO VMATE i3 | https://claude.ai/artifact/9MqTuGCWrtm9NUhgzp8A2K |
+
+## Оптовый сайт MAJORKA TabacoOPT (пробная версия)
+- Исходник: `site/src/majorka-opt.html` → сборка `python3 tools/build_site.py` → `site/index.html` (фото товаров подставляются из `posts/*/photos/`).
+- Публикуется как артефакт с capabilities `db` (заказы в `orders/<uid>`, правила: клиент видит только свои, владелец — все), `user`, `downloads`.
+- Каталог и цены — массив `P` в исходнике (демо-цены, заменить на реальный прайс).
+- Ссылка: https://claude.ai/artifact/6RCpRXzvkEBPcdKdmc7QKd · пример PDF заказа: `site/examples/order-sample.pdf`.

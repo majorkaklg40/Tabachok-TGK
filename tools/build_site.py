@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Собирает site/index.html из site/src/majorka-opt.html: подставляет фото товаров (вырезки из posts/*/photos) как data: URI."""
+"""Собирает site/index.html из site/src/majorka-opt.html: подставляет фото товаров как data: URI.
+Сначала ищет site/assets/<имя>.png, затем вырезки posts/*/photos/<имя>.png."""
 import base64, io, re, sys
 from pathlib import Path
 from PIL import Image
@@ -9,6 +10,9 @@ SRC = ROOT / "site/src/majorka-opt.html"
 OUT = ROOT / "site/index.html"
 
 def find_photo(name):
+    own = ROOT / f"site/assets/{name}.png"   # фото для сайта (из интернета) важнее вырезок постов
+    if own.exists():
+        return own
     hits = sorted(ROOT.glob(f"posts/*/photos/{name}.png"))
     if not hits:
         sys.exit(f"нет фото: {name}")
@@ -17,7 +21,7 @@ def find_photo(name):
 def data_uri(path):
     im = Image.open(path).convert("RGBA")
     im = im.crop(im.getbbox())
-    im.thumbnail((260, 260))
+    im.thumbnail((360, 360))
     buf = io.BytesIO()
     im.save(buf, "WEBP", quality=82)
     return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode()
